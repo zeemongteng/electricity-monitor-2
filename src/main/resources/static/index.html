@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Electricity monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@500&family=Public+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page: #E8EDF1;
+    --panel: #FFFFFF;
+    --ink: #16212B;
+    --muted: #5A6874;
+    --line: #C9D2DA;
+    --blue: #1F5FD6;
+    --amber: #D68A00;
+    --red: #C23A2D;
+    --drum: #14181D;
+    --digit: #F1EEE4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font: 400 15px/1.5 "Public Sans", system-ui, "Noto Sans Thai", sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 20px 20px 64px; }
+
+  /* top bar */
+  .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+  .top h1 { margin: 0 auto 0 0; font-size: 22px; font-weight: 700; }
+  select, input[type=number], input[type=datetime-local], input[type=text] {
+    font: inherit; color: inherit; background: #fff;
+    border: 1px solid var(--line); border-radius: 4px; padding: 7px 9px; min-width: 0;
+  }
+  button {
+    font: inherit; font-weight: 500; color: var(--ink); background: #fff;
+    border: 1px solid var(--line); border-radius: 4px; padding: 7px 12px; cursor: pointer;
+  }
+  button:hover { border-color: var(--ink); }
+  button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  button.primary:hover { background: #174DB0; border-color: #174DB0; }
+  button.danger { color: var(--red); border-color: var(--red); }
+  button:disabled { opacity: .5; cursor: default; }
+  :focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+  .bell { position: relative; padding: 7px 9px; display: inline-flex; }
+  .badge {
+    position: absolute; top: -7px; right: -7px; min-width: 19px; height: 19px; padding: 0 5px;
+    border-radius: 10px; background: var(--red); color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .badge[hidden] { display: none; }
+
+  /* panels */
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 20px; margin-bottom: 16px; }
+  .panel h2 { margin: 0 0 12px; font-size: 16px; font-weight: 700; }
+  .panel h3 { margin: 18px 0 8px; font-size: 14px; font-weight: 700; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+
+  /* hero: the meter */
+  .hero { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; }
+  .face .label { color: var(--muted); margin-bottom: 8px; }
+  .drums { display: inline-flex; gap: 3px; padding: 6px; background: #3B434B; border-radius: 6px; }
+  .drum {
+    font: 500 44px/1 "DM Mono", ui-monospace, monospace;
+    background: var(--drum); color: var(--digit);
+    width: 42px; height: 64px; display: flex; align-items: center; justify-content: center; border-radius: 3px;
+  }
+  .drum.dec { background: var(--red); color: #fff; }
+  .unit { font-size: 18px; font-weight: 500; margin-left: 10px; vertical-align: bottom; }
+  .live { text-align: right; }
+  .live .big { font-size: 44px; font-weight: 700; line-height: 1.1; }
+  .live .big span { font-size: 18px; font-weight: 500; margin-left: 4px; }
+
+  .totals { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 22px; border-top: 1px solid var(--line); }
+  .total { padding: 14px 16px 0 0; }
+  .total + .total { padding-left: 16px; border-left: 1px solid var(--line); }
+  .total .name { color: var(--muted); font-size: 13px; }
+  .total .kwh { font-size: 22px; font-weight: 700; }
+  .total .cost { color: var(--muted); font-size: 13px; }
+  .projection { margin: 14px 0 0; }
+
+  /* chart */
+  .tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
+  .tabs button { border: 0; border-radius: 0; background: #fff; }
+  .tabs button + button { border-left: 1px solid var(--line); }
+  .tabs button[aria-pressed=true] { background: var(--ink); color: #fff; }
+  .chartbox { position: relative; height: 300px; }
+
+  /* two columns */
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .cols .panel { margin-bottom: 0; }
+  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+  .field label { font-size: 13px; color: var(--muted); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .row .field { flex: 1 1 110px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .check { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
+  .note { min-height: 20px; margin-top: 8px; font-size: 13px; }
+  .note.error { color: var(--red); }
+
+  /* alerts list */
+  .alerts-head { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+  .alert-list { list-style: none; margin: 8px 0 0; padding: 0; max-height: 260px; overflow-y: auto; }
+  .alert-list li { padding: 9px 10px; border-left: 4px solid var(--line); border-bottom: 1px solid var(--line); cursor: pointer; }
+  .alert-list li.unread { border-left-color: var(--red); background: #FBF1EF; }
+  .alert-list .t { font-weight: 700; font-size: 14px; }
+  .alert-list .m { font-size: 13px; }
+  .alert-list .w { font-size: 12px; color: var(--muted); }
+  .empty { color: var(--muted); padding: 10px 0; }
+
+  /* table */
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-weight: 500; color: var(--muted); }
+
+  /* pop-up notifications */
+  #toasts { position: fixed; top: 16px; right: 16px; width: min(360px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 10px; z-index: 10; }
+  .toast { background: #fff; border: 1px solid var(--ink); border-left: 8px solid var(--red); border-radius: 4px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(22,33,43,.25); }
+  .toast.budget { border-left-color: var(--amber); }
+  .toast .t { font-weight: 700; }
+  .toast .w { font-size: 12px; color: var(--muted); margin: 2px 0 8px; }
+  .toast button { padding: 4px 10px; font-size: 13px; }
+
+  @media (max-width: 800px) {
+    .cols { grid-template-columns: 1fr; }
+    .totals { grid-template-columns: 1fr 1fr; }
+    .total:nth-child(3) { border-left: 0; padding-left: 0; }
+    .live { text-align: left; }
+    .drum { width: 34px; height: 54px; font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>Electricity monitor</h1>
+    <select id="meterSelect" aria-label="Meter"></select>
+    <button id="newMeter" type="button">New meter</button>
+    <button class="bell" id="bell" type="button" aria-label="Alerts">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+      <span class="badge" id="badge" hidden>0</span>
+    </button>
+  </header>
+
+  <!-- meter -->
+  <section class="panel">
+    <div class="hero">
+      <div class="face">
+        <div class="label">Meter reading</div>
+        <div><span class="drums" id="drums" aria-live="off"></span><span class="unit">kWh</span></div>
+        <div class="muted small" id="initialLine"></div>
+      </div>
+      <div class="live">
+        <div class="label muted">Power now</div>
+        <div class="big"><b id="watts">0</b><span>W</span></div>
+        <div class="muted small" id="latestAt"></div>
+      </div>
+    </div>
+    <div class="totals">
+      <div class="total"><div class="name">This hour</div><div class="kwh" id="tHour">0.00 kWh</div><div class="cost" id="cHour"></div></div>
+      <div class="total"><div class="name">Today</div><div class="kwh" id="tDay">0.00 kWh</div><div class="cost" id="cDay"></div></div>
+      <div class="total"><div class="name">This month</div><div class="kwh" id="tMonth">0.00 kWh</div><div class="cost" id="cMonth"></div></div>
+      <div class="total"><div class="name">This year</div><div class="kwh" id="tYear">0.00 kWh</div><div class="cost" id="cYear"></div></div>
+    </div>
+    <p class="projection muted" id="projection"></p>
+  </section>
+
+  <!-- chart -->
+  <section class="panel">
+    <h2>Usage over time</h2>
+    <div class="tabs" id="tabs">
+      <button type="button" data-period="HOUR" aria-pressed="true">Last 24 hours</button>
+      <button type="button" data-period="DAY" aria-pressed="false">Last 30 days</button>
+      <button type="button" data-period="MONTH" aria-pressed="false">Last 12 months</button>
+      <button type="button" data-period="YEAR" aria-pressed="false">Last 5 years</button>
+    </div>
+    <div class="chartbox"><canvas id="chart"></canvas></div>
+    <p class="muted small" id="chartNote"></p>
+  </section>
+
+  <div class="cols">
+    <!-- simulator -->
+    <section class="panel">
+      <h2>Simulator</h2>
+      <div class="row">
+        <div class="muted" id="autoText" style="flex:1 1 200px"></div>
+        <button type="button" id="autoBtn">Pause</button>
+      </div>
+
+      <h3>Add a reading</h3>
+      <form id="manualForm">
+        <div class="row">
+          <div class="field"><label for="mWatts">Power (W)</label><input id="mWatts" type="number" min="0" step="any" value="3000" required></div>
+          <div class="field"><label for="mSeconds">Duration (seconds)</label><input id="mSeconds" type="number" min="1" step="1" value="600" required></div>
+        </div>
+        <div class="field"><label for="mTime">Time (empty = now)</label><input id="mTime" type="datetime-local"></div>
+        <div class="muted small" id="kwhPreview"></div>
+        <div class="actions">
+          <button class="primary" type="submit">Add reading</button>
+          <button type="button" id="spikeBtn">Add a spike</button>
+        </div>
+      </form>
+
+      <h3>Fill in past usage</h3>
+      <div class="row">
+        <div class="field"><label for="hDays">Days before the oldest data</label><input id="hDays" type="number" min="1" max="180" value="30"></div>
+        <button type="button" id="histBtn">Generate history</button>
+      </div>
+
+      <hr>
+      <button type="button" class="danger" id="resetBtn">Reset all data</button>
+      <div class="note" id="simNote" role="status"></div>
+    </section>
+
+    <!-- alerts -->
+    <section class="panel">
+      <h2>Alerts</h2>
+      <form id="settingsForm">
+        <div class="row">
+          <div class="field"><label for="sMult">Alert above (times the average)</label><input id="sMult" type="number" min="1.1" step="0.1" required></div>
+          <div class="field"><label for="sBudget">Daily budget (kWh, 0 = off)</label><input id="sBudget" type="number" min="0" step="any" required></div>
+          <div class="field"><label for="sRate">Price per kWh (baht)</label><input id="sRate" type="number" min="0" step="any" required></div>
+        </div>
+        <label class="check"><input id="sEnabled" type="checkbox"> Alerts on for this meter</label>
+        <button type="submit">Save settings</button>
+      </form>
+
+      <div class="alerts-head">
+        <h3 style="margin:18px 0 0">Recent alerts</h3>
+        <button type="button" id="readAll" class="small">Mark all read</button>
+      </div>
+      <ul class="alert-list" id="alertList"></ul>
+    </section>
+  </div>
+
+  <!-- readings -->
+  <section class="panel" style="margin-top:16px">
+    <h2>Latest readings</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Time</th><th>Power (W)</th><th>Seconds</th><th>Energy (kWh)</th><th>Meter (kWh)</th><th>Source</th></tr></thead>
+        <tbody id="readingRows"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div id="toasts" aria-live="assertive"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+const BLUE = '#1F5FD6', AMBER = '#D68A00', RED = '#C23A2D';
+const KIND_TITLE = { SPIKE: 'Power spike', HOURLY_HIGH: 'High usage this hour', BUDGET: 'Daily budget passed' };
+
+let meters = [];
+let meterId = null;
+let period = 'HOUR';
+let chart = null;
+let lastWatts = 0;
+let seeded = false;            // first notification poll only fills `shown`, no pop-ups
+const shown = new Set();       // notification ids already popped up
+
+const $ = (id) => document.getElementById(id);
+
+// ---------- helpers ----------
+async function api(path, options) {
+  const res = await fetch(path, options);
+  if (!res.ok) {
+    let msg = res.statusText;
+    try {
+      const body = await res.json();
+      if (body.message) msg = body.message;
+    } catch (e) { /* no json body */ }
+    throw new Error(msg);
+  }
+  const type = res.headers.get('content-type') || '';
+  if (type.includes('json')) return res.json();
+  return null;
+}
+
+function send(path, method, body) {
+  const options = { method: method, headers: { 'Content-Type': 'application/json' } };
+  if (body !== undefined) options.body = JSON.stringify(body);
+  return api(path, options);
+}
+
+function fmt(n, digits) {
+  if (digits === undefined) digits = 2;
+  return Number(n).toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+
+function baht(n) { return '\u0E3F' + fmt(n, 2); }
+
+function currentMeter() {
+  for (const m of meters) {
+    if (m.id === Number(meterId)) return m;
+  }
+  return null;
+}
+
+function meterName(id) {
+  for (const m of meters) {
+    if (m.id === id) return m.name;
+  }
+  return 'Meter ' + id;
+}
+
+function note(text, isError) {
+  const el = $('simNote');
+  el.textContent = text;
+  el.className = isError ? 'note error' : 'note';
+}
+
+// ---------- meters ----------
+async function loadMeters(selectId) {
+  meters = await api('/api/meters');
+  const sel = $('meterSelect');
+  sel.innerHTML = '';
+  for (const m of meters) {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.name;
+    sel.appendChild(opt);
+  }
+  if (selectId) meterId = selectId;
+  else if (!meterId && meters.length > 0) meterId = meters[0].id;
+  sel.value = meterId;
+  fillSettings();
+}
+
+function fillSettings() {
+  const m = currentMeter();
+  if (!m) return;
+  $('sMult').value = m.alertMultiplier;
+  $('sBudget').value = m.dailyBudgetKwh;
+  $('sRate').value = m.ratePerKwh;
+  $('sEnabled').checked = m.alertsEnabled;
+}
+
+$('meterSelect').addEventListener('change', () => {
+  meterId = Number($('meterSelect').value);
+  fillSettings();
+  refresh();
+});
+
+$('newMeter').addEventListener('click', async () => {
+  const name = prompt('Meter name');
+  if (!name) return;
+  const initial = prompt('Initial reading in kWh', '0');
+  try {
+    const created = await send('/api/meters', 'POST', { name: name, initialReading: Number(initial) || 0 });
+    await loadMeters(created.id);
+    refresh();
+  } catch (e) { note(e.message, true); }
+});
+
+$('settingsForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const m = currentMeter();
+  if (!m) return;
+  try {
+    await send('/api/meters/' + m.id, 'PUT', {
+      name: m.name,
+      alertMultiplier: Number($('sMult').value),
+      alertsEnabled: $('sEnabled').checked,
+      dailyBudgetKwh: Number($('sBudget').value),
+      ratePerKwh: Number($('sRate').value)
+    });
+    await loadMeters(m.id);
+    refresh();
+    note('Settings saved.', false);
+  } catch (err) { note(err.message, true); }
+});
+
+// ---------- dashboard ----------
+function renderDrums(value) {
+  const parts = value.toFixed(2).split('.');
+  const whole = parts[0].padStart(5, '0');
+  let html = '';
+  for (const ch of whole) html += '<span class="drum">' + ch + '</span>';
+  for (const ch of parts[1]) html += '<span class="drum dec">' + ch + '</span>';
+  $('drums').innerHTML = html;
+}
+
+function renderOverview(o) {
+  renderDrums(o.currentReading);
+  $('initialLine').textContent = 'Installed at ' + fmt(o.initialReading, 2) + ' kWh';
+  lastWatts = o.latestPowerWatts;
+  $('watts').textContent = fmt(o.latestPowerWatts, 0);
+  $('latestAt').textContent = o.latestAt ? 'Updated ' + o.latestAt.slice(11, 19) : 'No readings yet';
+  $('tHour').textContent = fmt(o.hourKwh) + ' kWh';
+  $('tDay').textContent = fmt(o.todayKwh) + ' kWh';
+  $('tMonth').textContent = fmt(o.monthKwh) + ' kWh';
+  $('tYear').textContent = fmt(o.yearKwh) + ' kWh';
+  $('cHour').textContent = baht(o.hourKwh * o.ratePerKwh);
+  $('cDay').textContent = baht(o.todayCost);
+  $('cMonth').textContent = baht(o.monthCost);
+  $('cYear').textContent = baht(o.yearKwh * o.ratePerKwh);
+  if (o.monthKwh > 0) {
+    $('projection').textContent = 'At this pace the month ends near ' + fmt(o.projectedMonthKwh, 0) +
+      ' kWh (' + baht(o.projectedMonthCost) + ').';
+  } else {
+    $('projection').textContent = 'No usage recorded this month yet.';
+  }
+}
+
+function labelFor(periodStart) {
+  if (period === 'HOUR') return periodStart.slice(11, 16);
+  if (period === 'DAY') return periodStart.slice(5, 10);
+  if (period === 'MONTH') return periodStart.slice(0, 7);
+  return periodStart.slice(0, 4);
+}
+
+function renderChart(points) {
+  const labels = [];
+  const values = [];
+  for (const p of points) {
+    labels.push(labelFor(p.periodStart));
+    values.push(Number(p.totalKwh.toFixed(3)));
+  }
+  let sum = 0;
+  let count = 0;
+  for (const v of values) {
+    if (v > 0) { sum += v; count++; }
+  }
+  const average = count > 0 ? sum / count : 0;
+  const m = currentMeter();
+  const multiplier = m ? m.alertMultiplier : 1.5;
+  const level = average * multiplier;
+
+  const colors = [];
+  const levelLine = [];
+  for (const v of values) {
+    colors.push(level > 0 && v > level ? AMBER : BLUE);
+    levelLine.push(Number(level.toFixed(3)));
+  }
+
+  if (!chart) {
+    chart = new Chart($('chart'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'Usage (kWh)', data: values, backgroundColor: colors, borderRadius: 2 },
+          { type: 'line', label: 'Alert level', data: levelLine, borderColor: RED, borderDash: [6, 4],
+            borderWidth: 1.5, pointRadius: 0 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+        scales: { y: { beginAtZero: true, title: { display: true, text: 'kWh' } } }
+      }
+    });
+  } else {
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = values;
+    chart.data.datasets[0].backgroundColor = colors;
+    chart.data.datasets[1].data = levelLine;
+    chart.update('none');
+  }
+  $('chartNote').textContent = level > 0
+    ? 'Bars turn amber above the alert level: ' + multiplier + ' times the average of the periods shown.'
+    : 'No usage in this range yet. Use the simulator to add some.';
+}
+
+function renderReadings(rows) {
+  let html = '';
+  let shownRows = 0;
+  for (const r of rows) {
+    if (shownRows >= 12) break;
+    html += '<tr><td>' + r.recordedAt.slice(5, 10) + ' ' + r.recordedAt.slice(11, 19) + '</td>' +
+      '<td>' + fmt(r.powerWatts, 0) + '</td><td>' + r.durationSeconds + '</td>' +
+      '<td>' + fmt(r.usedKwh, 4) + '</td><td>' + fmt(r.cumulativeKwh, 2) + '</td>' +
+      '<td>' + r.source.toLowerCase() + '</td></tr>';
+    shownRows++;
+  }
+  $('readingRows').innerHTML = html;
+}
+
+async function refresh() {
+  if (!meterId) return;
+  try {
+    const results = await Promise.all([
+      api('/api/meters/' + meterId + '/overview'),
+      api('/api/usage?meterId=' + meterId + '&type=' + period),
+      api('/api/readings?meterId=' + meterId)
+    ]);
+    renderOverview(results[0]);
+    renderChart(results[1]);
+    renderReadings(results[2]);
+  } catch (e) { /* server restarting or briefly busy; try again next tick */ }
+}
+
+for (const btn of document.querySelectorAll('#tabs button')) {
+  btn.addEventListener('click', () => {
+    period = btn.dataset.period;
+    for (const other of document.querySelectorAll('#tabs button')) {
+      other.setAttribute('aria-pressed', other === btn ? 'true' : 'false');
+    }
+    refresh();
+  });
+}
+
+// ---------- notifications ----------
+function whenText(iso) { return iso.slice(5, 10) + ' ' + iso.slice(11, 16); }
+
+async function markRead(id) {
+  try { await send('/api/notifications/' + id + '/read', 'PATCH'); } catch (e) { /* ignore */ }
+  pollNotifications();
+}
+
+function showToast(n) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (n.kind === 'BUDGET' ? ' budget' : '');
+  el.setAttribute('role', 'alert');
+  el.innerHTML = '<div class="t"></div><div class="m"></div><div class="w"></div>' +
+    '<button type="button">Dismiss</button>';
+  el.querySelector('.t').textContent = KIND_TITLE[n.kind] || 'Alert';
+  el.querySelector('.m').textContent = n.message;
+  el.querySelector('.w').textContent = meterName(n.meterId) + ', ' + whenText(n.createdAt);
+  el.querySelector('button').addEventListener('click', () => {
+    el.remove();
+    markRead(n.id);
+  });
+  $('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 20000);   // still unread in the list if you miss it
+}
+
+function renderAlertList(list) {
+  const ul = $('alertList');
+  ul.innerHTML = '';
+  if (list.length === 0) {
+    ul.innerHTML = '<li class="empty" style="border:0;cursor:default">No alerts yet.</li>';
+    return;
+  }
+  for (const n of list) {
+    const li = document.createElement('li');
+    li.className = n.read ? '' : 'unread';
+    li.innerHTML = '<div class="t"></div><div class="m"></div><div class="w"></div>';
+    li.querySelector('.t').textContent = KIND_TITLE[n.kind] || 'Alert';
+    li.querySelector('.m').textContent = n.message;
+    li.querySelector('.w').textContent = meterName(n.meterId) + ', ' + whenText(n.createdAt);
+    li.addEventListener('click', () => { if (!n.read) markRead(n.id); });
+    ul.appendChild(li);
+  }
+}
+
+async function pollNotifications() {
+  try {
+    const list = await api('/api/notifications');
+    let unread = 0;
+    for (const n of list) {
+      if (!n.read) unread++;
+    }
+    $('badge').textContent = unread;
+    $('badge').hidden = unread === 0;
+    for (const n of list) {
+      if (!n.read && !shown.has(n.id)) {
+        if (seeded) showToast(n);
+        shown.add(n.id);
+      }
+    }
+    seeded = true;
+    renderAlertList(list);
+  } catch (e) { /* try again next tick */ }
+}
+
+$('bell').addEventListener('click', () => {
+  $('alertList').scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
+$('readAll').addEventListener('click', async () => {
+  try { await send('/api/notifications/read-all', 'POST'); } catch (e) { /* ignore */ }
+  $('toasts').innerHTML = '';
+  pollNotifications();
+});
+
+// ---------- simulator ----------
+async function loadSimStatus() {
+  try {
+    const s = await api('/api/simulator');
+    const seconds = Math.round(s.intervalMs / 1000);
+    $('autoText').textContent = s.autoEnabled
+      ? 'Auto simulator is running: a reading every ' + seconds + ' seconds.'
+      : 'Auto simulator is paused.';
+    $('autoBtn').textContent = s.autoEnabled ? 'Pause' : 'Resume';
+    $('autoBtn').dataset.enabled = s.autoEnabled ? 'true' : 'false';
+  } catch (e) { /* ignore */ }
+}
+
+$('autoBtn').addEventListener('click', async () => {
+  const turnOn = $('autoBtn').dataset.enabled !== 'true';
+  try {
+    await send('/api/simulator/auto?enabled=' + turnOn, 'POST');
+    loadSimStatus();
+  } catch (e) { note(e.message, true); }
+});
+
+function updatePreview() {
+  const kwh = Number($('mWatts').value) * Number($('mSeconds').value) / 3600000;
+  $('kwhPreview').textContent = 'This adds ' + fmt(kwh, 3) + ' kWh to the meter.';
+}
+$('mWatts').addEventListener('input', updatePreview);
+$('mSeconds').addEventListener('input', updatePreview);
+updatePreview();
+
+async function addReading(watts, seconds, time) {
+  if (!meterId) return;
+  try {
+    await send('/api/simulator/manual', 'POST', {
+      meterId: meterId,
+      powerWatts: watts,
+      durationSeconds: seconds,
+      recordedAt: time || null
+    });
+    note('Reading added: ' + fmt(watts, 0) + ' W for ' + seconds + ' s.', false);
+    refresh();
+    pollNotifications();
+  } catch (e) { note(e.message, true); }
+}
+
+$('manualForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  addReading(Number($('mWatts').value), Number($('mSeconds').value), $('mTime').value);
+});
+
+$('spikeBtn').addEventListener('click', () => {
+  // Three times whatever the meter is drawing now, for one minute.
+  const base = Math.max(lastWatts, 300);
+  addReading(Math.round(base * 3), 60, '');
+});
+
+$('histBtn').addEventListener('click', async () => {
+  if (!meterId) return;
+  const days = Number($('hDays').value);
+  $('histBtn').disabled = true;
+  note('Generating ' + days + ' days of history...', false);
+  try {
+    const result = await send('/api/simulator/history', 'POST', { meterId: meterId, days: days });
+    note('Added ' + result.generated + ' hourly readings.', false);
+    refresh();
+  } catch (e) { note(e.message, true); }
+  $('histBtn').disabled = false;
+});
+
+$('resetBtn').addEventListener('click', async () => {
+  if (!confirm('Delete all readings, totals and alerts for every meter?')) return;
+  try {
+    await send('/api/simulator/data', 'DELETE');
+    shown.clear();
+    $('toasts').innerHTML = '';
+    note('All data cleared. Meters are back at their initial readings.', false);
+    await loadMeters(meterId);
+    refresh();
+    pollNotifications();
+  } catch (e) { note(e.message, true); }
+});
+
+// ---------- start ----------
+async function init() {
+  try {
+    await loadMeters();
+  } catch (e) {
+    note('Cannot reach the server: ' + e.message, true);
+    return;
+  }
+  loadSimStatus();
+  await refresh();
+  await pollNotifications();
+  setInterval(refresh, 5000);
+  setInterval(pollNotifications, 3000);
+  setInterval(loadSimStatus, 15000);
+}
+init();
+</script>
+</body>
+</html>
