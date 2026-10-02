@@ -54,6 +54,12 @@ public class SimulatorController {
         return Map.of("generated", created);
     }
 
+    @PostMapping("/sample")
+    public Map<String, Integer> sample(@RequestParam Long meterId) {
+        int created = simulatorService.generateSample(meterId);
+        return Map.of("generated", created);
+    }
+
     @DeleteMapping("/data")
     public void reset() {
         simulatorService.resetAll();

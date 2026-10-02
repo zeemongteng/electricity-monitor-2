@@ -163,6 +163,14 @@ public class SimulatorService {
         });
     }
 
+    /**
+     * Add exactly 48 hours (2 days) of sample data before the oldest existing data
+     * (or before the current hour if there is no data). Returns how many readings were created.
+     */
+    public int generateSample(Long meterId) {
+        return generateHistory(meterId, 2);
+    }
+
     // ---------- reset ----------
 
     /** Delete all readings, totals and notifications; put every meter back to its initial reading. */

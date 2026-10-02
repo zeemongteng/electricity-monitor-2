@@ -218,6 +218,10 @@
         <button type="button" id="histBtn">Generate history</button>
       </div>
 
+      <div class="row">
+        <button type="button" id="sampleBtn">Add 48 hours of sample data</button>
+      </div>
+
       <hr>
       <button type="button" class="danger" id="resetBtn">Reset all data</button>
       <div class="note" id="simNote" role="status"></div>
@@ -655,6 +659,18 @@ $('histBtn').addEventListener('click', async () => {
     refresh();
   } catch (e) { note(e.message, true); }
   $('histBtn').disabled = false;
+});
+
+$('sampleBtn').addEventListener('click', async () => {
+  if (!meterId) return;
+  $('sampleBtn').disabled = true;
+  note('Adding 48 hours of sample data...', false);
+  try {
+    const result = await send('/api/simulator/sample?meterId=' + meterId, 'POST');
+    note('Added ' + result.generated + ' hourly readings.', false);
+    refresh();
+  } catch (e) { note(e.message, true); }
+  $('sampleBtn').disabled = false;
 });
 
 $('resetBtn').addEventListener('click', async () => {
