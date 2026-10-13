@@ -1,0 +1,18 @@
+# Render Blueprint: New > Blueprint, pick this repo.
+# The three database values are asked for once, in the Render dashboard (see README).
+services:
+  - type: web
+    name: electricity-monitor
+    runtime: docker
+    plan: free
+    region: singapore
+    healthCheckPath: /api/simulator
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: postgres
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_USERNAME
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false

@@ -17,6 +17,7 @@
     --blue: #1F5FD6;
     --amber: #D68A00;
     --red: #C23A2D;
+    --green: #2E7D4F;
     --drum: #14181D;
     --digit: #F1EEE4;
   }
@@ -32,7 +33,12 @@
 
   /* top bar */
   .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
-  .top h1 { margin: 0 auto 0 0; font-size: 22px; font-weight: 700; }
+  .brand { margin-right: auto; }
+  .brand h1 { margin: 0; font-size: 22px; font-weight: 700; }
+  .brand p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+  .status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+  .status.live .dot { background: var(--green); box-shadow: 0 0 0 3px rgba(46,125,79,.2); }
   select, input[type=number], input[type=datetime-local], input[type=text] {
     font: inherit; color: inherit; background: #fff;
     border: 1px solid var(--line); border-radius: 4px; padding: 7px 9px; min-width: 0;
@@ -45,9 +51,13 @@
   button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
   button.primary:hover { background: #174DB0; border-color: #174DB0; }
   button.danger { color: var(--red); border-color: var(--red); }
+  button.link { border: 0; background: none; color: var(--blue); padding: 4px 6px; }
   button:disabled { opacity: .5; cursor: default; }
   :focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+  .iconbtn { display: inline-flex; align-items: center; gap: 7px; }
+  .iconbtn svg { flex: none; }
 
+  .bellwrap { position: relative; }
   .bell { position: relative; padding: 7px 9px; display: inline-flex; }
   .badge {
     position: absolute; top: -7px; right: -7px; min-width: 19px; height: 19px; padding: 0 5px;
@@ -55,13 +65,31 @@
     display: flex; align-items: center; justify-content: center;
   }
   .badge[hidden] { display: none; }
+  .bell.ring svg { animation: ring .6s ease 2; transform-origin: 50% 0; }
+  @keyframes ring { 0%,100% { transform: rotate(0); } 25% { transform: rotate(14deg); } 75% { transform: rotate(-14deg); } }
+  @media (prefers-reduced-motion: reduce) { .bell.ring svg { animation: none; } }
+
+  .dropdown {
+    position: absolute; top: calc(100% + 8px); right: 0; width: min(380px, calc(100vw - 32px)); z-index: 25;
+    background: #fff; border: 1px solid var(--ink); border-radius: 6px; box-shadow: 0 10px 28px rgba(22,33,43,.25);
+  }
+  .dropdown[hidden] { display: none; }
+  .dd-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); font-weight: 700; }
 
   /* panels */
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 20px; margin-bottom: 16px; }
   .panel h2 { margin: 0 0 12px; font-size: 16px; font-weight: 700; }
-  .panel h3 { margin: 18px 0 8px; font-size: 14px; font-weight: 700; }
   .muted { color: var(--muted); }
   .small { font-size: 13px; }
+
+  /* demo guide + banner */
+  .guide { background: #EAF1FD; border-color: #B7CDF3; position: relative; }
+  .guide h2 { margin-bottom: 8px; }
+  .guide ol { margin: 0; padding-left: 20px; }
+  .guide li { margin: 3px 0; }
+  .guide .close { position: absolute; top: 10px; right: 10px; }
+  .banner { background: #FBF1EF; border: 1px solid var(--red); color: var(--red); border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; }
+  .banner[hidden], .guide[hidden] { display: none; }
 
   /* hero: the meter */
   .hero { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; }
@@ -87,44 +115,70 @@
   .projection { margin: 14px 0 0; }
 
   /* chart */
-  .tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
+  .tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin-bottom: 12px; flex-wrap: wrap; }
   .tabs button { border: 0; border-radius: 0; background: #fff; }
   .tabs button + button { border-left: 1px solid var(--line); }
   .tabs button[aria-pressed=true] { background: var(--ink); color: #fff; }
   .chartbox { position: relative; height: 300px; }
 
-  /* two columns */
-  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .cols .panel { margin-bottom: 0; }
+  /* forms */
   .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
   .field label { font-size: 13px; color: var(--muted); }
   .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
   .row .field { flex: 1 1 110px; }
   .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
   .check { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-  hr { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
   .note { min-height: 20px; margin-top: 8px; font-size: 13px; }
   .note.error { color: var(--red); }
 
+  /* simulator drawer */
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100vw); z-index: 20;
+    background: #fff; border-left: 1px solid var(--ink); box-shadow: -10px 0 28px rgba(22,33,43,.2);
+    display: flex; flex-direction: column;
+    visibility: hidden; transform: translateX(100%); transition: transform .2s ease, visibility .2s;
+  }
+  .drawer.open { visibility: visible; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .drawer { transition: none; } }
+  .drawer-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .drawer-head h2 { margin: 0; font-size: 18px; }
+  .drawer-body { padding: 16px 18px 28px; overflow-y: auto; }
+  .drawer h3 { margin: 20px 0 8px; font-size: 14px; font-weight: 700; }
+  .drawer h3:first-child { margin-top: 0; }
+  .quick { display: grid; gap: 8px; }
+  .quick button { text-align: left; padding: 10px 12px; }
+  .quick button small { display: block; font-weight: 400; color: var(--muted); }
+  details.more { border: 1px solid var(--line); border-radius: 4px; margin-top: 10px; }
+  details.more summary { cursor: pointer; padding: 9px 12px; font-weight: 500; }
+  details.more > div { padding: 4px 12px 12px; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0 14px; }
+
   /* alerts list */
-  .alerts-head { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
-  .alert-list { list-style: none; margin: 8px 0 0; padding: 0; max-height: 260px; overflow-y: auto; }
-  .alert-list li { padding: 9px 10px; border-left: 4px solid var(--line); border-bottom: 1px solid var(--line); cursor: pointer; }
+  .alert-list { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
+  .alert-list li { padding: 9px 12px; border-left: 4px solid var(--line); border-bottom: 1px solid var(--line); cursor: pointer; }
+  .alert-list li:last-child { border-bottom: 0; }
   .alert-list li.unread { border-left-color: var(--red); background: #FBF1EF; }
   .alert-list .t { font-weight: 700; font-size: 14px; }
   .alert-list .m { font-size: 13px; }
   .alert-list .w { font-size: 12px; color: var(--muted); }
-  .empty { color: var(--muted); padding: 10px 0; }
+  .alert-list li.empty { color: var(--muted); padding: 14px 12px; cursor: default; border-left-color: transparent; }
 
-  /* table */
-  .tablewrap { overflow-x: auto; }
+  /* readings */
+  details.readings summary { cursor: pointer; font-weight: 700; font-size: 16px; }
+  .tablewrap { overflow-x: auto; margin-top: 12px; }
   table { border-collapse: collapse; width: 100%; font-size: 14px; }
   th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
   th:first-child, td:first-child { text-align: left; }
   th { font-weight: 500; color: var(--muted); }
 
+  /* settings dialog */
+  dialog { border: 1px solid var(--ink); border-radius: 6px; padding: 0; width: min(440px, calc(100vw - 32px)); color: var(--ink); }
+  dialog::backdrop { background: rgba(22,33,43,.4); }
+  dialog form { padding: 18px 20px 20px; }
+  dialog h2 { margin: 0 0 12px; font-size: 18px; }
+
   /* pop-up notifications */
-  #toasts { position: fixed; top: 16px; right: 16px; width: min(360px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 10px; z-index: 10; }
+  #toasts { position: fixed; top: 70px; right: 16px; width: min(360px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 10px; z-index: 30; }
   .toast { background: #fff; border: 1px solid var(--ink); border-left: 8px solid var(--red); border-radius: 4px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(22,33,43,.25); }
   .toast.budget { border-left-color: var(--amber); }
   .toast .t { font-weight: 700; }
@@ -132,11 +186,11 @@
   .toast button { padding: 4px 10px; font-size: 13px; }
 
   @media (max-width: 800px) {
-    .cols { grid-template-columns: 1fr; }
     .totals { grid-template-columns: 1fr 1fr; }
     .total:nth-child(3) { border-left: 0; padding-left: 0; }
     .live { text-align: left; }
     .drum { width: 34px; height: 54px; font-size: 36px; }
+    .brand { flex: 1 1 100%; }
   }
 </style>
 </head>
@@ -144,14 +198,43 @@
 <div class="wrap">
 
   <header class="top">
-    <h1>Electricity monitor</h1>
+    <div class="brand">
+      <h1>Electricity monitor</h1>
+      <p>Demo: a simulated smart meter with live usage, costs and alerts</p>
+    </div>
+    <span class="status" id="status"><span class="dot"></span><span id="statusText">Connecting...</span></span>
     <select id="meterSelect" aria-label="Meter"></select>
-    <button id="newMeter" type="button">New meter</button>
-    <button class="bell" id="bell" type="button" aria-label="Alerts">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-      <span class="badge" id="badge" hidden>0</span>
+    <button type="button" id="settingsBtn" class="iconbtn" aria-label="Meter settings">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+      <span>Settings</span>
     </button>
+    <button type="button" id="simBtn" class="primary iconbtn" aria-expanded="false" aria-controls="drawer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      <span>Simulator</span>
+    </button>
+    <div class="bellwrap" id="bellWrap">
+      <button class="bell" id="bell" type="button" aria-label="Alerts" aria-expanded="false" aria-controls="alertPanel">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        <span class="badge" id="badge" hidden>0</span>
+      </button>
+      <div class="dropdown" id="alertPanel" hidden>
+        <div class="dd-head"><span>Alerts</span><button type="button" id="readAll" class="link small">Mark all read</button></div>
+        <ul class="alert-list" id="alertList"></ul>
+      </div>
+    </div>
   </header>
+
+  <div class="banner" id="banner" role="alert" hidden></div>
+
+  <section class="panel guide" id="guide" hidden>
+    <button type="button" class="link close" id="guideClose" aria-label="Hide this guide">Hide</button>
+    <h2>How this demo works</h2>
+    <ol>
+      <li>A simulated smart meter sends a reading every few seconds. The numbers below update by themselves.</li>
+      <li>Open <b>Simulator</b> (top right) to trigger a power spike or load sample data.</li>
+      <li>Unusual usage raises an alert: a pop-up, plus the <b>bell</b> next to the Simulator button.</li>
+    </ol>
+  </section>
 
   <!-- meter -->
   <section class="panel">
@@ -189,76 +272,84 @@
     <p class="muted small" id="chartNote"></p>
   </section>
 
-  <div class="cols">
-    <!-- simulator -->
-    <section class="panel">
-      <h2>Simulator</h2>
-      <div class="row">
-        <div class="muted" id="autoText" style="flex:1 1 200px"></div>
-        <button type="button" id="autoBtn">Pause</button>
-      </div>
-
-      <h3>Add a reading</h3>
-      <form id="manualForm">
-        <div class="row">
-          <div class="field"><label for="mWatts">Power (W)</label><input id="mWatts" type="number" min="0" step="any" value="3000" required></div>
-          <div class="field"><label for="mSeconds">Duration (seconds)</label><input id="mSeconds" type="number" min="1" step="1" value="600" required></div>
-        </div>
-        <div class="field"><label for="mTime">Time (empty = now)</label><input id="mTime" type="datetime-local"></div>
-        <div class="muted small" id="kwhPreview"></div>
-        <div class="actions">
-          <button class="primary" type="submit">Add reading</button>
-          <button type="button" id="spikeBtn">Add a spike</button>
-        </div>
-      </form>
-
-      <h3>Fill in past usage</h3>
-      <div class="row">
-        <div class="field"><label for="hDays">Days before the oldest data</label><input id="hDays" type="number" min="1" max="180" value="30"></div>
-        <button type="button" id="histBtn">Generate history</button>
-      </div>
-
-      <div class="row">
-        <button type="button" id="sampleBtn">Add 48 hours of sample data</button>
-      </div>
-
-      <hr>
-      <button type="button" class="danger" id="resetBtn">Reset all data</button>
-      <div class="note" id="simNote" role="status"></div>
-    </section>
-
-    <!-- alerts -->
-    <section class="panel">
-      <h2>Alerts</h2>
-      <form id="settingsForm">
-        <div class="row">
-          <div class="field"><label for="sMult">Alert above (times the average)</label><input id="sMult" type="number" min="1.1" step="0.1" required></div>
-          <div class="field"><label for="sBudget">Daily budget (kWh, 0 = off)</label><input id="sBudget" type="number" min="0" step="any" required></div>
-          <div class="field"><label for="sRate">Price per kWh (baht)</label><input id="sRate" type="number" min="0" step="any" required></div>
-        </div>
-        <label class="check"><input id="sEnabled" type="checkbox"> Alerts on for this meter</label>
-        <button type="submit">Save settings</button>
-      </form>
-
-      <div class="alerts-head">
-        <h3 style="margin:18px 0 0">Recent alerts</h3>
-        <button type="button" id="readAll" class="small">Mark all read</button>
-      </div>
-      <ul class="alert-list" id="alertList"></ul>
-    </section>
-  </div>
-
   <!-- readings -->
-  <section class="panel" style="margin-top:16px">
-    <h2>Latest readings</h2>
-    <div class="tablewrap">
-      <table>
-        <thead><tr><th>Time</th><th>Power (W)</th><th>Seconds</th><th>Energy (kWh)</th><th>Meter (kWh)</th><th>Source</th></tr></thead>
-        <tbody id="readingRows"></tbody>
-      </table>
-    </div>
+  <section class="panel">
+    <details class="readings">
+      <summary>Latest raw readings</summary>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Time</th><th>Power (W)</th><th>Seconds</th><th>Energy (kWh)</th><th>Meter (kWh)</th><th>Source</th></tr></thead>
+          <tbody id="readingRows"></tbody>
+        </table>
+      </div>
+    </details>
   </section>
 </div>
+
+<!-- simulator drawer -->
+<aside class="drawer" id="drawer" aria-label="Simulator" aria-hidden="true">
+  <div class="drawer-head">
+    <h2>Simulator</h2>
+    <button type="button" id="drawerClose" aria-label="Close simulator">Close</button>
+  </div>
+  <div class="drawer-body">
+    <h3>Live feed</h3>
+    <div class="row">
+      <div class="muted small" id="autoText" style="flex:1 1 180px"></div>
+      <button type="button" id="autoBtn">Pause</button>
+    </div>
+
+    <h3>Quick actions</h3>
+    <div class="quick">
+      <button type="button" id="spikeBtn">Trigger a power spike<small>Three times the current power for one minute. Should raise an alert.</small></button>
+      <button type="button" id="sampleBtn">Load 48 hours of sample data<small>Fills the 24-hour chart right away.</small></button>
+    </div>
+
+    <details class="more">
+      <summary>Add a custom reading</summary>
+      <div>
+        <form id="manualForm">
+          <div class="row">
+            <div class="field"><label for="mWatts">Power (W)</label><input id="mWatts" type="number" min="0" step="any" value="3000" required></div>
+            <div class="field"><label for="mSeconds">Duration (seconds)</label><input id="mSeconds" type="number" min="1" step="1" value="600" required></div>
+          </div>
+          <div class="field"><label for="mTime">Time (empty = now)</label><input id="mTime" type="datetime-local"></div>
+          <div class="muted small" id="kwhPreview"></div>
+          <div class="actions"><button class="primary" type="submit">Add reading</button></div>
+        </form>
+      </div>
+    </details>
+
+    <details class="more">
+      <summary>Fill in past usage</summary>
+      <div class="row">
+        <div class="field"><label for="hDays">Days before the oldest data</label><input id="hDays" type="number" min="1" max="180" value="30"></div>
+        <button type="button" id="histBtn" style="margin-bottom:10px">Generate history</button>
+      </div>
+    </details>
+
+    <hr>
+    <button type="button" class="danger" id="resetBtn">Reset all data</button>
+    <div class="note" id="simNote" role="status"></div>
+  </div>
+</aside>
+
+<!-- settings dialog -->
+<dialog id="settingsDlg" aria-labelledby="settingsTitle">
+  <form id="settingsForm" method="dialog">
+    <h2 id="settingsTitle">Meter settings</h2>
+    <div class="field"><label for="sMult">Alert above (times the average)</label><input id="sMult" type="number" min="1.1" step="0.1" required></div>
+    <div class="field"><label for="sBudget">Daily budget (kWh, 0 = off)</label><input id="sBudget" type="number" min="0" step="any" required></div>
+    <div class="field"><label for="sRate">Price per kWh (baht)</label><input id="sRate" type="number" min="0" step="any" required></div>
+    <label class="check"><input id="sEnabled" type="checkbox"> Alerts on for this meter</label>
+    <div class="actions">
+      <button class="primary" type="submit">Save</button>
+      <button type="button" id="settingsCancel">Cancel</button>
+      <button type="button" id="newMeter" style="margin-left:auto">New meter...</button>
+    </div>
+    <div class="note" id="dlgNote" role="status"></div>
+  </form>
+</dialog>
 
 <div id="toasts" aria-live="assertive"></div>
 
@@ -272,6 +363,7 @@ let meterId = null;
 let period = 'HOUR';
 let chart = null;
 let lastWatts = 0;
+let lastUnread = 0;
 let seeded = false;            // first notification poll only fills `shown`, no pop-ups
 const shown = new Set();       // notification ids already popped up
 
@@ -304,7 +396,7 @@ function fmt(n, digits) {
   return Number(n).toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
-function baht(n) { return '\u0E3F' + fmt(n, 2); }
+function baht(n) { return '฿' + fmt(n, 2); }
 
 function currentMeter() {
   for (const m of meters) {
@@ -320,11 +412,26 @@ function meterName(id) {
   return 'Meter ' + id;
 }
 
-function note(text, isError) {
-  const el = $('simNote');
+function setNote(el, text, isError) {
   el.textContent = text;
   el.className = isError ? 'note error' : 'note';
 }
+function note(text, isError) { setNote($('simNote'), text, isError); }
+
+function showBanner(text) {
+  $('banner').textContent = text;
+  $('banner').hidden = !text;
+}
+
+// ---------- demo guide ----------
+function guideHidden() {
+  try { return localStorage.getItem('guideHidden') === '1'; } catch (e) { return false; }
+}
+$('guide').hidden = guideHidden();
+$('guideClose').addEventListener('click', () => {
+  $('guide').hidden = true;
+  try { localStorage.setItem('guideHidden', '1'); } catch (e) { /* ignore */ }
+});
 
 // ---------- meters ----------
 async function loadMeters(selectId) {
@@ -358,6 +465,14 @@ $('meterSelect').addEventListener('change', () => {
   refresh();
 });
 
+// ---------- settings dialog ----------
+$('settingsBtn').addEventListener('click', () => {
+  fillSettings();
+  setNote($('dlgNote'), '', false);
+  $('settingsDlg').showModal();
+});
+$('settingsCancel').addEventListener('click', () => $('settingsDlg').close());
+
 $('newMeter').addEventListener('click', async () => {
   const name = prompt('Meter name');
   if (!name) return;
@@ -365,8 +480,9 @@ $('newMeter').addEventListener('click', async () => {
   try {
     const created = await send('/api/meters', 'POST', { name: name, initialReading: Number(initial) || 0 });
     await loadMeters(created.id);
+    $('settingsDlg').close();
     refresh();
-  } catch (e) { note(e.message, true); }
+  } catch (e) { setNote($('dlgNote'), e.message, true); }
 });
 
 $('settingsForm').addEventListener('submit', async (e) => {
@@ -382,9 +498,9 @@ $('settingsForm').addEventListener('submit', async (e) => {
       ratePerKwh: Number($('sRate').value)
     });
     await loadMeters(m.id);
+    $('settingsDlg').close();
     refresh();
-    note('Settings saved.', false);
-  } catch (err) { note(err.message, true); }
+  } catch (err) { setNote($('dlgNote'), err.message, true); }
 });
 
 // ---------- dashboard ----------
@@ -478,7 +594,7 @@ function renderChart(points) {
   }
   $('chartNote').textContent = level > 0
     ? 'Bars turn amber above the alert level: ' + multiplier + ' times the average of the periods shown.'
-    : 'No usage in this range yet. Use the simulator to add some.';
+    : 'No usage in this range yet. Open the Simulator and load some sample data.';
 }
 
 function renderReadings(rows) {
@@ -506,6 +622,7 @@ async function refresh() {
     renderOverview(results[0]);
     renderChart(results[1]);
     renderReadings(results[2]);
+    showBanner('');
   } catch (e) { /* server restarting or briefly busy; try again next tick */ }
 }
 
@@ -548,7 +665,7 @@ function renderAlertList(list) {
   const ul = $('alertList');
   ul.innerHTML = '';
   if (list.length === 0) {
-    ul.innerHTML = '<li class="empty" style="border:0;cursor:default">No alerts yet.</li>';
+    ul.innerHTML = '<li class="empty">No alerts yet. Try a power spike from the Simulator.</li>';
     return;
   }
   for (const n of list) {
@@ -572,6 +689,12 @@ async function pollNotifications() {
     }
     $('badge').textContent = unread;
     $('badge').hidden = unread === 0;
+    if (seeded && unread > lastUnread) {
+      $('bell').classList.remove('ring');
+      void $('bell').offsetWidth;
+      $('bell').classList.add('ring');
+    }
+    lastUnread = unread;
     for (const n of list) {
       if (!n.read && !shown.has(n.id)) {
         if (seeded) showToast(n);
@@ -583,8 +706,20 @@ async function pollNotifications() {
   } catch (e) { /* try again next tick */ }
 }
 
+// ---------- bell dropdown ----------
+function setBellOpen(open) {
+  $('alertPanel').hidden = !open;
+  $('bell').setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
 $('bell').addEventListener('click', () => {
-  $('alertList').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const open = $('alertPanel').hidden;
+  setBellOpen(open);
+  if (open) setDrawerOpen(false);
+});
+
+document.addEventListener('click', (e) => {
+  if (!$('alertPanel').hidden && !$('bellWrap').contains(e.target)) setBellOpen(false);
 });
 
 $('readAll').addEventListener('click', async () => {
@@ -593,16 +728,44 @@ $('readAll').addEventListener('click', async () => {
   pollNotifications();
 });
 
-// ---------- simulator ----------
+// ---------- simulator drawer ----------
+function setDrawerOpen(open) {
+  $('drawer').classList.toggle('open', open);
+  $('drawer').setAttribute('aria-hidden', open ? 'false' : 'true');
+  $('simBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+$('simBtn').addEventListener('click', () => {
+  const open = !$('drawer').classList.contains('open');
+  setDrawerOpen(open);
+  if (open) {
+    setBellOpen(false);
+    $('drawerClose').focus();
+  }
+});
+$('drawerClose').addEventListener('click', () => {
+  setDrawerOpen(false);
+  $('simBtn').focus();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (!$('alertPanel').hidden) { setBellOpen(false); $('bell').focus(); }
+  else if ($('drawer').classList.contains('open')) { setDrawerOpen(false); $('simBtn').focus(); }
+});
+
+// ---------- simulator actions ----------
 async function loadSimStatus() {
   try {
     const s = await api('/api/simulator');
     const seconds = Math.round(s.intervalMs / 1000);
     $('autoText').textContent = s.autoEnabled
-      ? 'Auto simulator is running: a reading every ' + seconds + ' seconds.'
-      : 'Auto simulator is paused.';
+      ? 'Running: a new reading every ' + seconds + ' seconds.'
+      : 'Paused: no new readings until you resume.';
     $('autoBtn').textContent = s.autoEnabled ? 'Pause' : 'Resume';
     $('autoBtn').dataset.enabled = s.autoEnabled ? 'true' : 'false';
+    $('status').classList.toggle('live', s.autoEnabled);
+    $('statusText').textContent = s.autoEnabled ? 'Live' : 'Paused';
   } catch (e) { /* ignore */ }
 }
 
@@ -691,7 +854,8 @@ async function init() {
   try {
     await loadMeters();
   } catch (e) {
-    note('Cannot reach the server: ' + e.message, true);
+    showBanner('Cannot reach the server: ' + e.message + '. Start the app with "mvn spring-boot:run" and reload.');
+    $('statusText').textContent = 'Offline';
     return;
   }
   loadSimStatus();
